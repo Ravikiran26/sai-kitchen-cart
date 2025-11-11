@@ -22,6 +22,7 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// Shopping cart with persistent storage
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
