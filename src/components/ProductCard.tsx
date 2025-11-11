@@ -4,14 +4,27 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { ShoppingCart } from 'lucide-react';
 import { Product } from '@/types/product';
+import { useCart } from '@/contexts/CartContext';
+import { useToast } from '@/hooks/use-toast';
 
 interface ProductCardProps {
   product: Product;
 }
 
 export const ProductCard = ({ product }: ProductCardProps) => {
+  const { addToCart } = useCart();
+  const { toast } = useToast();
   const defaultVariant = product.variants[0];
   const discount = Math.round(((defaultVariant.mrp - defaultVariant.price) / defaultVariant.mrp) * 100);
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    addToCart(product, defaultVariant, 1);
+    toast({
+      title: "Added to cart",
+      description: `${product.name} (${defaultVariant.label}) added to your cart.`,
+    });
+  };
 
   return (
     <Card className="group overflow-hidden transition-all hover:shadow-lg transition-theme">
@@ -55,7 +68,7 @@ export const ProductCard = ({ product }: ProductCardProps) => {
         </div>
       </CardContent>
       <CardFooter className="p-4 pt-0">
-        <Button className="w-full" size="sm">
+        <Button className="w-full" size="sm" onClick={handleAddToCart}>
           <ShoppingCart className="mr-2 h-4 w-4" />
           Add to Cart
         </Button>

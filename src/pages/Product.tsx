@@ -7,11 +7,13 @@ import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { ShoppingCart, Heart, Share2, Flame } from 'lucide-react';
 import { toast } from 'sonner';
+import { useCart } from '@/contexts/CartContext';
 
 export default function Product() {
   const { slug } = useParams<{ slug: string }>();
   const product = getProductBySlug(slug || '');
   const [selectedVariant, setSelectedVariant] = useState(0);
+  const { addToCart } = useCart();
 
   if (!product) {
     return (
@@ -29,9 +31,12 @@ export default function Product() {
   const discount = Math.round(((variant.mrp - variant.price) / variant.mrp) * 100);
 
   const handleAddToCart = () => {
-    toast.success('Added to cart!', {
-      description: `${product.name} (${variant.label}) added to your cart`,
-    });
+    if (product) {
+      addToCart(product, variant, 1);
+      toast.success('Added to cart!', {
+        description: `${product.name} (${variant.label}) added to your cart`,
+      });
+    }
   };
 
   const spiceLevelColors = {
