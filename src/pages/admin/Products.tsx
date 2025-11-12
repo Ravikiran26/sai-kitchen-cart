@@ -1,9 +1,14 @@
+import { useState } from 'react';
 import { products } from '@/data/products';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Edit, Trash2, Plus } from 'lucide-react';
+import ProductEditDialog from '@/components/admin/ProductEditDialog';
+import { Product } from '@/types/product';
 
 export default function AdminProducts() {
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -39,7 +44,11 @@ export default function AdminProducts() {
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="icon" disabled>
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    onClick={() => setEditingProduct(product)}
+                  >
                     <Edit className="w-4 h-4" />
                   </Button>
                   <Button variant="outline" size="icon" disabled>
@@ -51,6 +60,14 @@ export default function AdminProducts() {
           </Card>
         ))}
       </div>
+
+      {editingProduct && (
+        <ProductEditDialog
+          product={editingProduct}
+          open={!!editingProduct}
+          onOpenChange={(open) => !open && setEditingProduct(null)}
+        />
+      )}
     </div>
   );
 }
