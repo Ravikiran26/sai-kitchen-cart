@@ -88,7 +88,6 @@ export default function ProductEditDialog({ product, open, onOpenChange }: Produ
                 <SelectValue placeholder="Select spice level" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
                 <SelectItem value="mild">Mild</SelectItem>
                 <SelectItem value="medium">Medium</SelectItem>
                 <SelectItem value="hot">Hot</SelectItem>
