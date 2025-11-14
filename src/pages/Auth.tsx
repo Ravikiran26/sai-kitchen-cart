@@ -1,34 +1,52 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useNavigate } from 'react-router-dom';
-import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { signIn, signUp, user } = useAuth();
 
-  const handleLogin = (e: React.FormEvent) => {
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: 'Backend Required',
-      description: 'Authentication requires backend. Enable Lovable Cloud to use this feature.',
-      variant: 'destructive',
-    });
+    setLoading(true);
+    const { error } = await signIn(email, password);
+    setLoading(false);
+    
+    if (!error) {
+      navigate('/');
+    }
   };
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: 'Backend Required',
-      description: 'Authentication requires backend. Enable Lovable Cloud to use this feature.',
-      variant: 'destructive',
-    });
+    
+    if (password.length < 6) {
+      return;
+    }
+    
+    setLoading(true);
+    const { error } = await signUp(email, password);
+    setLoading(false);
+    
+    if (!error) {
+      // Switch to login tab after successful signup
+      setPassword('');
+    }
   };
 
   return (
@@ -72,8 +90,8 @@ export default function Auth() {
                     required
                   />
                 </div>
-                <Button type="submit" className="w-full">
-                  Sign In
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? 'Signing in...' : 'Sign In'}
                 </Button>
               </form>
             </TabsContent>
@@ -101,9 +119,12 @@ export default function Auth() {
                     required
                   />
                 </div>
-                <Button type="submit" className="w-full">
-                  Create Account
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? 'Creating account...' : 'Create Account'}
                 </Button>
+                <p className="text-xs text-muted-foreground text-center mt-2">
+                  Password must be at least 6 characters
+                </p>
               </form>
             </TabsContent>
           </Tabs>
