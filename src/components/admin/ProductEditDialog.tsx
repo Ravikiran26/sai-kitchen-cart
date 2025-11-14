@@ -5,42 +5,126 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Product, Category } from '@/types/product';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+
+interface DbProduct {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  category: string;
+  price_range: string;
+  image_url: string;
+  tags: string[];
+  spice_level: string | null;
+  origin: string | null;
+  weight: string | null;
+  shelf_life: string | null;
+  available: boolean;
+}
 
 interface ProductEditDialogProps {
-  product: Product;
+  product: DbProduct;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 export default function ProductEditDialog({ product, open, onOpenChange }: ProductEditDialogProps) {
   const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: product.name,
+    slug: product.slug || '',
     category: product.category,
     description: product.description,
-    spiceLevel: product.spiceLevel || '',
+    price_range: product.price_range || '',
+    image_url: product.image_url || '',
+    spice_level: product.spice_level || '',
+    origin: product.origin || '',
+    weight: product.weight || '',
+    shelf_life: product.shelf_life || '',
+    tags: product.tags?.join(', ') || '',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const generateSlug = (name: string) => {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Backend Required",
-      description: "Product editing requires backend integration. Enable Lovable Cloud to save changes.",
-      variant: "destructive",
-    });
+    setLoading(true);
+
+    try {
+      const slug = formData.slug || generateSlug(formData.name);
+      const tagsArray = formData.tags.split(',').map(t => t.trim()).filter(Boolean);
+
+      const productData = {
+        name: formData.name,
+        slug,
+        category: formData.category,
+        description: formData.description,
+        price_range: formData.price_range,
+        image_url: formData.image_url,
+        spice_level: formData.spice_level || null,
+        origin: formData.origin || null,
+        weight: formData.weight || null,
+        shelf_life: formData.shelf_life || null,
+        tags: tagsArray,
+        available: true,
+      };
+
+      if (product.id) {
+        // Update existing product
+        const { error } = await supabase
+          .from('products')
+          .update(productData)
+          .eq('id', product.id);
+
+        if (error) throw error;
+
+        toast({
+          title: 'Success',
+          description: 'Product updated successfully',
+        });
+      } else {
+        // Create new product
+        const { error } = await supabase
+          .from('products')
+          .insert([productData]);
+
+        if (error) throw error;
+
+        toast({
+          title: 'Success',
+          description: 'Product created successfully',
+        });
+      }
+
+      onOpenChange(false);
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit Product</DialogTitle>
+          <DialogTitle>{product.id ? 'Edit Product' : 'Add Product'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Product Name</Label>
+            <Label htmlFor="name">Product Name *</Label>
             <Input
               id="name"
               value={formData.name}
@@ -50,10 +134,20 @@ export default function ProductEditDialog({ product, open, onOpenChange }: Produ
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="category">Category</Label>
+            <Label htmlFor="slug">Slug (auto-generated if empty)</Label>
+            <Input
+              id="slug"
+              value={formData.slug}
+              onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+              placeholder={generateSlug(formData.name)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="category">Category *</Label>
             <Select
               value={formData.category}
-              onValueChange={(value) => setFormData({ ...formData, category: value as Category })}
+              onValueChange={(value) => setFormData({ ...formData, category: value })}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -68,7 +162,7 @@ export default function ProductEditDialog({ product, open, onOpenChange }: Produ
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">Description *</Label>
             <Textarea
               id="description"
               value={formData.description}
@@ -79,10 +173,32 @@ export default function ProductEditDialog({ product, open, onOpenChange }: Produ
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="price_range">Price Range * (e.g., ₹150-₹300)</Label>
+            <Input
+              id="price_range"
+              value={formData.price_range}
+              onChange={(e) => setFormData({ ...formData, price_range: e.target.value })}
+              placeholder="₹150-₹300"
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="image_url">Image URL *</Label>
+            <Input
+              id="image_url"
+              value={formData.image_url}
+              onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+              placeholder="https://..."
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="spiceLevel">Spice Level (Optional)</Label>
             <Select
-              value={formData.spiceLevel}
-              onValueChange={(value) => setFormData({ ...formData, spiceLevel: value })}
+              value={formData.spice_level}
+              onValueChange={(value) => setFormData({ ...formData, spice_level: value })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select spice level" />
@@ -97,39 +213,52 @@ export default function ProductEditDialog({ product, open, onOpenChange }: Produ
           </div>
 
           <div className="space-y-2">
-            <Label>Variants</Label>
-            <div className="space-y-2">
-              {product.variants.map((variant, index) => (
-                <div key={index} className="grid grid-cols-4 gap-2 p-3 border rounded-md">
-                  <div>
-                    <Label className="text-xs">Label</Label>
-                    <Input value={variant.label} readOnly className="h-8" />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Weight (g)</Label>
-                    <Input value={variant.weightGrams} readOnly className="h-8" />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Price</Label>
-                    <Input value={variant.price} readOnly className="h-8" />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Stock</Label>
-                    <Input value={variant.stock} readOnly className="h-8" />
-                  </div>
-                </div>
-              ))}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Variant editing requires backend integration
-            </p>
+            <Label htmlFor="origin">Origin (Optional)</Label>
+            <Input
+              id="origin"
+              value={formData.origin}
+              onChange={(e) => setFormData({ ...formData, origin: e.target.value })}
+              placeholder="e.g., Guntur, Andhra Pradesh"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="weight">Weight (Optional)</Label>
+            <Input
+              id="weight"
+              value={formData.weight}
+              onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+              placeholder="e.g., 250g, 500g, 1kg"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="shelf_life">Shelf Life (Optional)</Label>
+            <Input
+              id="shelf_life"
+              value={formData.shelf_life}
+              onChange={(e) => setFormData({ ...formData, shelf_life: e.target.value })}
+              placeholder="e.g., 12 months"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="tags">Tags (comma-separated)</Label>
+            <Input
+              id="tags"
+              value={formData.tags}
+              onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+              placeholder="e.g., traditional, organic, spicy"
+            />
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
               Cancel
             </Button>
-            <Button type="submit">Save Changes</Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? 'Saving...' : 'Save Changes'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
