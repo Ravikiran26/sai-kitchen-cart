@@ -1,7 +1,7 @@
 import { useParams } from 'react-router-dom';
 import { useState, useMemo } from 'react';
 import { ProductCard } from '@/components/ProductCard';
-import { getProductsByCategory } from '@/data/products';
+import { useProductsByCategory } from '@/hooks/useProducts';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
@@ -21,28 +21,38 @@ export default function Category() {
   const [priceRange, setPriceRange] = useState([0, 500]);
   const [sortBy, setSortBy] = useState<SortOption>('featured');
 
-  const products = getProductsByCategory(category || '');
+  const { products, loading } = useProductsByCategory(category || '');
 
   const filteredProducts = useMemo(() => {
     let filtered = products.filter((product) => {
-      const price = product.variants[0].price;
+      // Parse first price from price_range
+      const prices = product.price_range.split(',').map(p => parseInt(p.trim()));
+      const price = prices[0] || 0;
       return price >= priceRange[0] && price <= priceRange[1];
     });
 
     // Sort products
     switch (sortBy) {
       case 'price-low':
-        filtered.sort((a, b) => a.variants[0].price - b.variants[0].price);
+        filtered.sort((a, b) => {
+          const priceA = parseInt(a.price_range.split(',')[0].trim());
+          const priceB = parseInt(b.price_range.split(',')[0].trim());
+          return priceA - priceB;
+        });
         break;
       case 'price-high':
-        filtered.sort((a, b) => b.variants[0].price - a.variants[0].price);
+        filtered.sort((a, b) => {
+          const priceA = parseInt(a.price_range.split(',')[0].trim());
+          const priceB = parseInt(b.price_range.split(',')[0].trim());
+          return priceB - priceA;
+        });
         break;
       case 'name':
         filtered.sort((a, b) => a.name.localeCompare(b.name));
         break;
       default:
-        // Featured - bestsellers first
-        filtered.sort((a, b) => (b.isBestseller ? 1 : 0) - (a.isBestseller ? 1 : 0));
+        // Featured - keep default order
+        break;
     }
 
     return filtered;
@@ -115,12 +125,15 @@ export default function Category() {
 
         {/* Products Grid */}
         <div className="lg:col-span-3">
-          {filteredProducts.length === 0 ? (
-            <div className="text-center py-16">
-              <p className="text-xl text-muted-foreground">No products found matching your filters.</p>
+          {loading ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Loading products...</p>
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground mb-4">No products found matching your filters.</p>
               <Button
-                variant="link"
-                className="mt-4"
+                variant="outline"
                 onClick={() => {
                   setPriceRange([0, 500]);
                   setSortBy('featured');

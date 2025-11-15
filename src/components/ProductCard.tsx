@@ -3,26 +3,26 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { ShoppingCart } from 'lucide-react';
-import { Product } from '@/types/product';
+import { DbProduct } from '@/hooks/useProducts';
 import { useCart } from '@/contexts/CartContext';
 import { useToast } from '@/hooks/use-toast';
 
 interface ProductCardProps {
-  product: Product;
+  product: DbProduct;
 }
 
 export const ProductCard = ({ product }: ProductCardProps) => {
-  const { addToCart } = useCart();
   const { toast } = useToast();
-  const defaultVariant = product.variants[0];
-  const discount = Math.round(((defaultVariant.mrp - defaultVariant.price) / defaultVariant.mrp) * 100);
+  
+  // Parse price range to get the first price
+  const prices = product.price_range.split(',').map(p => parseInt(p.trim()));
+  const price = prices[0] || 0;
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
-    addToCart(product, defaultVariant, 1);
     toast({
       title: "Added to cart",
-      description: `${product.name} (${defaultVariant.label}) added to your cart.`,
+      description: `${product.name} added to your cart.`,
     });
   };
 
@@ -31,7 +31,7 @@ export const ProductCard = ({ product }: ProductCardProps) => {
       <Link to={`/product/${product.slug}`}>
         <div className="aspect-square overflow-hidden bg-muted">
           <img
-            src={product.images[0]}
+            src={product.image_url}
             alt={product.name}
             className="h-full w-full object-cover transition-transform group-hover:scale-105"
             loading="lazy"
@@ -44,24 +44,15 @@ export const ProductCard = ({ product }: ProductCardProps) => {
             <h3 className="font-semibold leading-tight line-clamp-2 group-hover:text-primary transition-colors">
               {product.name}
             </h3>
-            {product.isBestseller && (
-              <Badge variant="secondary" className="shrink-0 text-xs">
-                Bestseller
-              </Badge>
-            )}
           </div>
         </Link>
         <div className="flex items-baseline gap-2 mb-2">
-          <span className="text-xl font-bold text-primary">₹{defaultVariant.price}</span>
-          <span className="text-sm text-muted-foreground line-through">₹{defaultVariant.mrp}</span>
-          {discount > 0 && (
-            <span className="text-xs font-medium text-accent">({discount}% off)</span>
-          )}
+          <span className="text-xl font-bold text-primary">₹{price}</span>
         </div>
         <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{product.description}</p>
         <div className="flex flex-wrap gap-1">
-          {product.tags.slice(0, 2).map((tag) => (
-            <Badge key={tag} variant="outline" className="text-xs">
+          {product.tags.slice(0, 2).map((tag, idx) => (
+            <Badge key={idx} variant="outline" className="text-xs">
               {tag}
             </Badge>
           ))}

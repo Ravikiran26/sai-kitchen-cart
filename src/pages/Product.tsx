@@ -1,19 +1,23 @@
 import { useParams, Link } from 'react-router-dom';
-import { useState } from 'react';
-import { getProductBySlug } from '@/data/products';
+import { useProductBySlug } from '@/hooks/useProducts';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { ShoppingCart, Heart, Share2, Flame } from 'lucide-react';
 import { toast } from 'sonner';
-import { useCart } from '@/contexts/CartContext';
 
 export default function Product() {
   const { slug } = useParams<{ slug: string }>();
-  const product = getProductBySlug(slug || '');
-  const [selectedVariant, setSelectedVariant] = useState(0);
-  const { addToCart } = useCart();
+  const { product, loading } = useProductBySlug(slug || '');
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-16 text-center">
+        <p className="text-muted-foreground">Loading product...</p>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -27,23 +31,14 @@ export default function Product() {
     );
   }
 
-  const variant = product.variants[selectedVariant];
-  const discount = Math.round(((variant.mrp - variant.price) / variant.mrp) * 100);
+  // Parse prices from price_range
+  const prices = product.price_range.split(',').map(p => parseInt(p.trim()));
+  const weights = product.weight?.split(',').map(w => w.trim()) || [];
 
   const handleAddToCart = () => {
-    if (product) {
-      addToCart(product, variant, 1);
-      toast.success('Added to cart!', {
-        description: `${product.name} (${variant.label}) added to your cart`,
-      });
-    }
-  };
-
-  const spiceLevelColors = {
-    mild: 'bg-green-500',
-    medium: 'bg-yellow-500',
-    hot: 'bg-orange-500',
-    'extra-hot': 'bg-red-500',
+    toast.success('Added to cart!', {
+      description: `${product.name} added to your cart`,
+    });
   };
 
   return (
@@ -64,7 +59,7 @@ export default function Product() {
         <div>
           <div className="aspect-square overflow-hidden rounded-lg bg-muted mb-4">
             <img
-              src={product.images[0]}
+              src={product.image_url}
               alt={product.name}
               className="h-full w-full object-cover"
             />
@@ -73,19 +68,13 @@ export default function Product() {
 
         {/* Product Info */}
         <div>
-          {product.isBestseller && (
-            <Badge variant="secondary" className="mb-3">
-              Bestseller
-            </Badge>
-          )}
           <h1 className="text-3xl md:text-4xl font-bold mb-4">{product.name}</h1>
 
           {/* Price */}
           <div className="flex items-baseline gap-3 mb-4">
-            <span className="text-4xl font-bold text-primary">₹{variant.price}</span>
-            <span className="text-xl text-muted-foreground line-through">₹{variant.mrp}</span>
-            {discount > 0 && (
-              <Badge className="bg-accent text-accent-foreground">{discount}% OFF</Badge>
+            <span className="text-4xl font-bold text-primary">₹{prices[0]}</span>
+            {prices.length > 1 && (
+              <span className="text-muted-foreground">- ₹{prices[prices.length - 1]}</span>
             )}
           </div>
 
@@ -93,65 +82,66 @@ export default function Product() {
 
           <Separator className="my-6" />
 
-          {/* Weight Variants */}
-          <div className="mb-6">
-            <label className="text-sm font-medium mb-3 block">Select Weight</label>
-            <div className="flex flex-wrap gap-3">
-              {product.variants.map((v, idx) => (
-                <Button
-                  key={idx}
-                  variant={selectedVariant === idx ? 'default' : 'outline'}
-                  onClick={() => setSelectedVariant(idx)}
-                  className="min-w-[100px]"
-                >
-                  <div className="text-center">
-                    <div className="font-semibold">{v.label}</div>
-                    <div className="text-xs">₹{v.price}</div>
-                  </div>
-                </Button>
-              ))}
+          {/* Available Weights */}
+          {weights.length > 0 && (
+            <div className="mb-6">
+              <h3 className="font-semibold mb-3">Available Sizes</h3>
+              <div className="flex flex-wrap gap-2">
+                {weights.map((weight, idx) => (
+                  <Badge key={idx} variant="outline" className="text-sm px-4 py-2">
+                    {weight}
+                  </Badge>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Spice Level */}
-          {product.spiceLevel && (
+          {product.spice_level && (
             <div className="mb-6">
-              <label className="text-sm font-medium mb-3 block">Spice Level</label>
+              <h3 className="font-semibold mb-3">Spice Level</h3>
               <div className="flex items-center gap-2">
-                <div className="flex gap-1">
-                  {[...Array(4)].map((_, i) => (
+                {['mild', 'medium', 'hot', 'extra-hot'].map((level, idx) => {
+                  const spiceLevels = ['mild', 'medium', 'hot', 'extra-hot'];
+                  const productLevel = spiceLevels.indexOf(product.spice_level!);
+                  const isActive = idx <= productLevel;
+                  return (
                     <Flame
-                      key={i}
-                      className={`h-5 w-5 ${
-                        i < ['mild', 'medium', 'hot', 'extra-hot'].indexOf(product.spiceLevel!)
-                          ? spiceLevelColors[product.spiceLevel!]
+                      key={level}
+                      className={`h-6 w-6 ${
+                        isActive 
+                          ? idx === 0 ? 'fill-green-500 text-green-500' 
+                          : idx === 1 ? 'fill-yellow-500 text-yellow-500'
+                          : idx === 2 ? 'fill-orange-500 text-orange-500'
+                          : 'fill-red-500 text-red-500'
                           : 'text-muted'
                       }`}
-                      fill="currentColor"
                     />
-                  ))}
-                </div>
-                <span className="capitalize font-medium">{product.spiceLevel}</span>
+                  );
+                })}
+                <span className="ml-2 text-sm text-muted-foreground capitalize">
+                  {product.spice_level.replace('-', ' ')}
+                </span>
               </div>
             </div>
           )}
 
           {/* Stock Status */}
           <div className="mb-6">
-            {variant.stock > 0 ? (
-              <span className="text-sm text-green-600 font-medium">✓ In Stock ({variant.stock} available)</span>
-            ) : (
-              <span className="text-sm text-destructive font-medium">Out of Stock</span>
-            )}
+            <div className="inline-flex items-center gap-2 rounded-full bg-green-500/10 px-3 py-1 text-sm text-green-600">
+              <div className="h-2 w-2 rounded-full bg-green-500" />
+              In Stock
+            </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex gap-3 mb-6">
-            <Button
-              size="lg"
+          <Separator className="my-6" />
+
+          {/* Action Buttons */}
+          <div className="flex gap-4 mb-6">
+            <Button 
+              size="lg" 
               className="flex-1"
               onClick={handleAddToCart}
-              disabled={variant.stock === 0}
             >
               <ShoppingCart className="mr-2 h-5 w-5" />
               Add to Cart
@@ -165,23 +155,17 @@ export default function Product() {
           </div>
 
           {/* Tags */}
-          <div className="flex flex-wrap gap-2 mb-6">
-            {product.tags.map((tag) => (
-              <Badge key={tag} variant="outline">
-                {tag}
-              </Badge>
-            ))}
-          </div>
+          {product.tags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-6">
+              {product.tags.map((tag, idx) => (
+                <Badge key={idx} variant="outline">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          )}
 
           <Separator className="my-6" />
-
-          {/* Ingredients */}
-          {product.ingredients && (
-            <Card className="p-4 mb-6">
-              <h3 className="font-semibold mb-2">Ingredients</h3>
-              <p className="text-sm text-muted-foreground">{product.ingredients.join(', ')}</p>
-            </Card>
-          )}
 
           {/* Additional Info */}
           <Card className="p-4">
@@ -191,14 +175,18 @@ export default function Product() {
                 <span className="text-muted-foreground">Category:</span>
                 <span className="font-medium capitalize">{product.category}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Weight:</span>
-                <span className="font-medium">{variant.label}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Shelf Life:</span>
-                <span className="font-medium">6 months</span>
-              </div>
+              {product.origin && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Origin:</span>
+                  <span className="font-medium">{product.origin}</span>
+                </div>
+              )}
+              {product.shelf_life && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Shelf Life:</span>
+                  <span className="font-medium">{product.shelf_life}</span>
+                </div>
+              )}
             </div>
           </Card>
         </div>
