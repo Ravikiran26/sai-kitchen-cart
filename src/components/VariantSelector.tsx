@@ -16,7 +16,7 @@ interface VariantSelectorProps {
 }
 
 export default function VariantSelector({ variants, onSelect }: VariantSelectorProps) {
-  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
   const handleSelect = (index: number) => {
     setSelectedIndex(index);
@@ -30,7 +30,7 @@ export default function VariantSelector({ variants, onSelect }: VariantSelectorP
       <h3 className="font-semibold mb-3">Select Size</h3>
       <div className="flex flex-wrap gap-2">
         {variants.map((variant, idx) => {
-          const isSelected = idx === selectedIndex;
+          const isSelected = selectedIndex === idx;
           const isOutOfStock = variant.stock === 0;
           
           return (
