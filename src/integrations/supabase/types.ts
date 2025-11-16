@@ -30,6 +30,7 @@ export type Database = {
           spice_level: string | null
           tags: string[] | null
           updated_at: string | null
+          variants: Json | null
           weight: string | null
         }
         Insert: {
@@ -47,6 +48,7 @@ export type Database = {
           spice_level?: string | null
           tags?: string[] | null
           updated_at?: string | null
+          variants?: Json | null
           weight?: string | null
         }
         Update: {
@@ -64,6 +66,7 @@ export type Database = {
           spice_level?: string | null
           tags?: string[] | null
           updated_at?: string | null
+          variants?: Json | null
           weight?: string | null
         }
         Relationships: []

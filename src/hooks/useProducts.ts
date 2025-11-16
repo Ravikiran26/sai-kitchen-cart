@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+export interface ProductVariant {
+  label: string;
+  weightGrams: number;
+  price: number;
+  mrp: number;
+  stock: number;
+}
+
 export interface DbProduct {
   id: string;
   name: string;
@@ -15,6 +23,7 @@ export interface DbProduct {
   weight?: string;
   shelf_life?: string;
   available: boolean;
+  variants?: ProductVariant[];
 }
 
 export const useProducts = () => {
@@ -34,7 +43,11 @@ export const useProducts = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setProducts(data || []);
+      const productsWithVariants = (data || []).map(p => ({
+        ...p,
+        variants: Array.isArray(p.variants) ? p.variants as unknown as ProductVariant[] : []
+      }));
+      setProducts(productsWithVariants);
     } catch (error) {
       console.error('Error fetching products:', error);
     } finally {
@@ -62,7 +75,11 @@ export const useProductsByCategory = (category: string) => {
           .order('created_at', { ascending: false });
 
         if (error) throw error;
-        setProducts(data || []);
+        const productsWithVariants = (data || []).map(p => ({
+          ...p,
+          variants: Array.isArray(p.variants) ? p.variants as unknown as ProductVariant[] : []
+        }));
+        setProducts(productsWithVariants);
       } catch (error) {
         console.error('Error fetching products:', error);
       } finally {
@@ -93,7 +110,11 @@ export const useProductBySlug = (slug: string) => {
           .single();
 
         if (error) throw error;
-        setProduct(data);
+        const productWithVariants = {
+          ...data,
+          variants: Array.isArray(data.variants) ? data.variants as unknown as ProductVariant[] : []
+        };
+        setProduct(productWithVariants);
       } catch (error) {
         console.error('Error fetching product:', error);
       } finally {

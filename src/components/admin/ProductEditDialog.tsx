@@ -7,6 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { Separator } from '@/components/ui/separator';
+import VariantManager, { ProductVariant } from './VariantManager';
 
 interface DbProduct {
   id: string;
@@ -22,6 +24,7 @@ interface DbProduct {
   weight: string | null;
   shelf_life: string | null;
   available: boolean;
+  variants?: ProductVariant[];
 }
 
 interface ProductEditDialogProps {
@@ -46,6 +49,7 @@ export default function ProductEditDialog({ product, open, onOpenChange }: Produ
     shelf_life: product.shelf_life || '',
     tags: product.tags?.join(', ') || '',
   });
+  const [variants, setVariants] = useState<ProductVariant[]>(product.variants || []);
 
   const generateSlug = (name: string) => {
     return name
@@ -75,6 +79,7 @@ export default function ProductEditDialog({ product, open, onOpenChange }: Produ
         shelf_life: formData.shelf_life || null,
         tags: tagsArray,
         available: true,
+        variants: variants.length > 0 ? (variants as any) : null,
       };
 
       if (product.id) {
@@ -251,6 +256,10 @@ export default function ProductEditDialog({ product, open, onOpenChange }: Produ
               placeholder="e.g., traditional, organic, spicy"
             />
           </div>
+
+          <Separator className="my-6" />
+          
+          <VariantManager variants={variants} onChange={setVariants} />
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
