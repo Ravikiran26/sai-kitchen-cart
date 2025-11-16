@@ -36,17 +36,26 @@ export default function Product() {
 
   // Get prices and display variant info
   const hasVariants = product.variants && product.variants.length > 0;
-  const displayPrice = hasVariants && selectedVariant 
-    ? selectedVariant.price 
-    : (hasVariants ? product.variants![0].price : product.price_range.split(',').map(p => parseInt(p.trim()))[0]);
   
-  const displayMrp = hasVariants && selectedVariant 
-    ? selectedVariant.mrp 
-    : (hasVariants ? product.variants![0].mrp : 0);
+  const displayPrice = hasVariants 
+    ? (selectedVariant ? selectedVariant.price : product.variants![0].price)
+    : product.price_range.split(',').map(p => parseInt(p.trim()))[0];
+  
+  const displayMrp = hasVariants 
+    ? (selectedVariant ? selectedVariant.mrp : product.variants![0].mrp)
+    : 0;
 
+  const isOutOfStock = hasVariants && selectedVariant && selectedVariant.stock === 0;
   const weights = product.weight?.split(',').map(w => w.trim()) || [];
 
   const handleAddToCart = () => {
+    if (hasVariants && !selectedVariant) {
+      toast.error('Please select a size', {
+        description: 'Choose a variant before adding to cart',
+      });
+      return;
+    }
+    
     const variantInfo = selectedVariant ? ` (${selectedVariant.label})` : '';
     toast.success('Added to cart!', {
       description: `${product.name}${variantInfo} added to your cart`,
@@ -152,12 +161,30 @@ export default function Product() {
           )}
 
           {/* Stock Status */}
-          <div className="mb-6">
-            <div className="inline-flex items-center gap-2 rounded-full bg-green-500/10 px-3 py-1 text-sm text-green-600">
-              <div className="h-2 w-2 rounded-full bg-green-500" />
-              In Stock
+          {hasVariants ? (
+            selectedVariant && (
+              <div className="mb-6">
+                {selectedVariant.stock > 0 ? (
+                  <div className="inline-flex items-center gap-2 rounded-full bg-green-500/10 px-3 py-1 text-sm text-green-600">
+                    <div className="h-2 w-2 rounded-full bg-green-500" />
+                    {selectedVariant.stock < 10 ? `Only ${selectedVariant.stock} left` : 'In Stock'}
+                  </div>
+                ) : (
+                  <div className="inline-flex items-center gap-2 rounded-full bg-red-500/10 px-3 py-1 text-sm text-red-600">
+                    <div className="h-2 w-2 rounded-full bg-red-500" />
+                    Out of Stock
+                  </div>
+                )}
+              </div>
+            )
+          ) : (
+            <div className="mb-6">
+              <div className="inline-flex items-center gap-2 rounded-full bg-green-500/10 px-3 py-1 text-sm text-green-600">
+                <div className="h-2 w-2 rounded-full bg-green-500" />
+                In Stock
+              </div>
             </div>
-          </div>
+          )}
 
           <Separator className="my-6" />
 
@@ -167,9 +194,10 @@ export default function Product() {
               size="lg" 
               className="flex-1"
               onClick={handleAddToCart}
+              disabled={isOutOfStock || (hasVariants && !selectedVariant)}
             >
               <ShoppingCart className="mr-2 h-5 w-5" />
-              Add to Cart
+              {isOutOfStock ? 'Out of Stock' : (hasVariants && !selectedVariant) ? 'Select a Size' : 'Add to Cart'}
             </Button>
             <Button size="lg" variant="outline">
               <Heart className="h-5 w-5" />
