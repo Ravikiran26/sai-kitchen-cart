@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useProductBySlug } from '@/hooks/useProducts';
 import { Button } from '@/components/ui/button';
@@ -6,10 +7,12 @@ import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { ShoppingCart, Heart, Share2, Flame } from 'lucide-react';
 import { toast } from 'sonner';
+import VariantSelector, { ProductVariant } from '@/components/VariantSelector';
 
 export default function Product() {
   const { slug } = useParams<{ slug: string }>();
   const { product, loading } = useProductBySlug(slug || '');
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
 
   if (loading) {
     return (
@@ -31,13 +34,22 @@ export default function Product() {
     );
   }
 
-  // Parse prices from price_range
-  const prices = product.price_range.split(',').map(p => parseInt(p.trim()));
+  // Get prices and display variant info
+  const hasVariants = product.variants && product.variants.length > 0;
+  const displayPrice = hasVariants && selectedVariant 
+    ? selectedVariant.price 
+    : (hasVariants ? product.variants![0].price : product.price_range.split(',').map(p => parseInt(p.trim()))[0]);
+  
+  const displayMrp = hasVariants && selectedVariant 
+    ? selectedVariant.mrp 
+    : (hasVariants ? product.variants![0].mrp : 0);
+
   const weights = product.weight?.split(',').map(w => w.trim()) || [];
 
   const handleAddToCart = () => {
+    const variantInfo = selectedVariant ? ` (${selectedVariant.label})` : '';
     toast.success('Added to cart!', {
-      description: `${product.name} added to your cart`,
+      description: `${product.name}${variantInfo} added to your cart`,
     });
   };
 
@@ -72,9 +84,14 @@ export default function Product() {
 
           {/* Price */}
           <div className="flex items-baseline gap-3 mb-4">
-            <span className="text-4xl font-bold text-primary">₹{prices[0]}</span>
-            {prices.length > 1 && (
-              <span className="text-muted-foreground">- ₹{prices[prices.length - 1]}</span>
+            <span className="text-4xl font-bold text-primary">₹{displayPrice}</span>
+            {displayMrp > displayPrice && (
+              <span className="text-xl text-muted-foreground line-through">₹{displayMrp}</span>
+            )}
+            {displayMrp > displayPrice && (
+              <Badge variant="secondary" className="ml-2">
+                Save ₹{displayMrp - displayPrice}
+              </Badge>
             )}
           </div>
 
@@ -82,18 +99,26 @@ export default function Product() {
 
           <Separator className="my-6" />
 
-          {/* Available Weights */}
-          {weights.length > 0 && (
-            <div className="mb-6">
-              <h3 className="font-semibold mb-3">Available Sizes</h3>
-              <div className="flex flex-wrap gap-2">
-                {weights.map((weight, idx) => (
-                  <Badge key={idx} variant="outline" className="text-sm px-4 py-2">
-                    {weight}
-                  </Badge>
-                ))}
+          {/* Variant Selector */}
+          {hasVariants ? (
+            <VariantSelector 
+              variants={product.variants!} 
+              onSelect={(variant) => setSelectedVariant(variant)} 
+            />
+          ) : (
+            /* Available Weights - only show if no variants */
+            weights.length > 0 && (
+              <div className="mb-6">
+                <h3 className="font-semibold mb-3">Available Sizes</h3>
+                <div className="flex flex-wrap gap-2">
+                  {weights.map((weight, idx) => (
+                    <Badge key={idx} variant="outline" className="text-sm px-4 py-2">
+                      {weight}
+                    </Badge>
+                  ))}
+                </div>
               </div>
-            </div>
+            )
           )}
 
           {/* Spice Level */}

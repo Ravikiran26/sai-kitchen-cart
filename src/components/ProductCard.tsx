@@ -14,9 +14,16 @@ interface ProductCardProps {
 export const ProductCard = ({ product }: ProductCardProps) => {
   const { toast } = useToast();
   
-  // Parse price range to get the first price
-  const prices = product.price_range.split(',').map(p => parseInt(p.trim()));
-  const price = prices[0] || 0;
+  // Get price from variants or fallback to price_range
+  const getPrice = () => {
+    if (product.variants && product.variants.length > 0) {
+      return product.variants[0].price;
+    }
+    const prices = product.price_range.split(',').map(p => parseInt(p.trim()));
+    return prices[0] || 0;
+  };
+
+  const price = getPrice();
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -41,7 +48,7 @@ export const ProductCard = ({ product }: ProductCardProps) => {
       <CardContent className="p-4">
         <Link to={`/product/${product.slug}`}>
           <div className="mb-2 flex items-start justify-between gap-2">
-            <h3 className="font-semibold leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+            <h3 className="text-base font-semibold leading-tight line-clamp-2 group-hover:text-primary transition-colors">
               {product.name}
             </h3>
           </div>

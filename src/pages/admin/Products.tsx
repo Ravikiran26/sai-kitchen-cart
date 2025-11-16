@@ -20,6 +20,7 @@ interface DbProduct {
   weight: string | null;
   shelf_life: string | null;
   available: boolean;
+  variants?: any;
 }
 
 export default function AdminProducts() {
@@ -108,6 +109,7 @@ export default function AdminProducts() {
           weight: null,
           shelf_life: null,
           available: true,
+          variants: [],
         })}>
           <Plus className="w-4 h-4 mr-2" />
           Add Product
