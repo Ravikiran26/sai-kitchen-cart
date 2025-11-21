@@ -16,42 +16,59 @@ import { Card } from '@/components/ui/card';
 
 type SortOption = 'featured' | 'price-low' | 'price-high' | 'name';
 
+// Helper: get first price from a product
+function getFirstPrice(product: any): number {
+  // 1) If price_range string exists, use it
+  if (product.price_range) {
+    const prices = String(product.price_range)
+      .split(',')
+      .map((p: string) => parseInt(p.trim(), 10))
+      .filter((n) => !Number.isNaN(n));
+
+    if (prices.length > 0) {
+      return prices[0];
+    }
+  }
+
+  // 2) Fallback: use first variant price if available
+  if (Array.isArray(product.variants) && product.variants.length > 0) {
+    const price = product.variants[0].price;
+    if (typeof price === 'number') {
+      return price;
+    }
+  }
+
+  // 3) Default
+  return 0;
+}
+
 export default function Category() {
   const { category } = useParams<{ category: string }>();
-  const [priceRange, setPriceRange] = useState([0, 500]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 500]);
   const [sortBy, setSortBy] = useState<SortOption>('featured');
 
-  const { products, loading } = useProductsByCategory(category || '');
+  const { products = [], loading } = useProductsByCategory(category || '');
 
   const filteredProducts = useMemo(() => {
+    // Filter by price range
     let filtered = products.filter((product) => {
-      // Parse first price from price_range
-      const prices = product.price_range.split(',').map(p => parseInt(p.trim()));
-      const price = prices[0] || 0;
+      const price = getFirstPrice(product);
       return price >= priceRange[0] && price <= priceRange[1];
     });
 
     // Sort products
     switch (sortBy) {
       case 'price-low':
-        filtered.sort((a, b) => {
-          const priceA = parseInt(a.price_range.split(',')[0].trim());
-          const priceB = parseInt(b.price_range.split(',')[0].trim());
-          return priceA - priceB;
-        });
+        filtered.sort((a, b) => getFirstPrice(a) - getFirstPrice(b));
         break;
       case 'price-high':
-        filtered.sort((a, b) => {
-          const priceA = parseInt(a.price_range.split(',')[0].trim());
-          const priceB = parseInt(b.price_range.split(',')[0].trim());
-          return priceB - priceA;
-        });
+        filtered.sort((a, b) => getFirstPrice(b) - getFirstPrice(a));
         break;
       case 'name':
         filtered.sort((a, b) => a.name.localeCompare(b.name));
         break;
       default:
-        // Featured - keep default order
+        // featured: keep original order
         break;
     }
 
@@ -68,9 +85,12 @@ export default function Category() {
   return (
     <div className="container mx-auto px-4 py-8 transition-theme">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2">{categoryNames[category || ''] || 'Products'}</h1>
+        <h1 className="text-4xl font-bold mb-2">
+          {categoryNames[category || ''] || 'Products'}
+        </h1>
         <p className="text-muted-foreground">
-          Showing {filteredProducts.length} {filteredProducts.length === 1 ? 'product' : 'products'}
+          Showing {filteredProducts.length}{' '}
+          {filteredProducts.length === 1 ? 'product' : 'products'}
         </p>
       </div>
 
@@ -97,7 +117,10 @@ export default function Category() {
             {/* Sort By */}
             <div className="mb-6">
               <Label className="mb-3 block">Sort By</Label>
-              <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
+              <Select
+                value={sortBy}
+                onValueChange={(value) => setSortBy(value as SortOption)}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -131,7 +154,9 @@ export default function Category() {
             </div>
           ) : filteredProducts.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-muted-foreground mb-4">No products found matching your filters.</p>
+              <p className="text-muted-foreground mb-4">
+                No products found matching your filters.
+              </p>
               <Button
                 variant="outline"
                 onClick={() => {

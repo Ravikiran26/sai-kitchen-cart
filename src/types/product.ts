@@ -1,3 +1,4 @@
+// src/types/product.ts
 export type Category = 'pickles' | 'podulu' | 'snacks' | 'pulses';
 
 export interface ProductVariant {
@@ -17,7 +18,14 @@ export interface Product {
   images: string[];
   variants: ProductVariant[];
   tags: string[];
-  spiceLevel?: 'mild' | 'medium' | 'hot' | 'extra-hot';
-  ingredients?: string[];
+
+  // backend-style fields
+  spice_level?: 'mild' | 'medium' | 'hot' | 'extra-hot';
+  origin?: string | null;
+  shelf_life?: string | null;
+  weight?: string | null;
+  price_range?: string | null;
+  ingredients?: string | null;
+
   isBestseller?: boolean;
 }

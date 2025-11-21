@@ -2,16 +2,20 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Outlet,             // 👈 add this
+} from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
+// import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { CartSidebar } from "@/components/CartSidebar";
 import { AdminLayout } from "@/components/AdminLayout";
-import Index from "./pages/Index";
 import Home from "./pages/Home";
 import Category from "./pages/Category";
 import Product from "./pages/Product";
@@ -24,49 +28,54 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-// Shopping cart with persistent storage
+// Layout for the normal store pages
+const StoreLayout = () => (
+  <div className="flex flex-col min-h-screen">
+    <Header />
+    <main className="flex-1">
+      <Outlet />   {/* children routes render here */}
+    </main>
+    <Footer />
+    <CartSidebar />
+  </div>
+);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
       <AuthProvider>
         <CartProvider>
           <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/admin" element={
-                <ProtectedRoute requireAdmin={true}>
-                  <AdminLayout />
-                </ProtectedRoute>
-              }>
-                <Route index element={<AdminDashboard />} />
-                <Route path="products" element={<AdminProducts />} />
-                <Route path="orders" element={<AdminOrders />} />
-              </Route>
-              
-              <Route
-                path="*"
-                element={
-                  <div className="flex flex-col min-h-screen">
-                    <Header />
-                    <main className="flex-1">
-                      <Routes>
-                        <Route path="/" element={<Home />} />
-                        <Route path="/category/:category" element={<Category />} />
-                        <Route path="/product/:slug" element={<Product />} />
-                        <Route path="/auth" element={<Auth />} />
-                        <Route path="/checkout" element={<Checkout />} />
-                        <Route path="*" element={<NotFound />} />
-                      </Routes>
-                    </main>
-                    <Footer />
-                    <CartSidebar />
-                  </div>
-                }
-              />
-            </Routes>
-          </BrowserRouter>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                {/* ADMIN ROUTES (auth disabled for now) */}
+                <Route
+                  path="/admin"
+                  element={
+                    // <ProtectedRoute requireAdmin={true}>
+                    //   <AdminLayout />
+                    // </ProtectedRoute>
+                    <AdminLayout />
+                  }
+                >
+                  <Route index element={<AdminDashboard />} />
+                  <Route path="products" element={<AdminProducts />} />
+                  <Route path="orders" element={<AdminOrders />} />
+                </Route>
+
+                {/* STORE ROUTES */}
+                <Route element={<StoreLayout />}>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/category/:category" element={<Category />} />
+                  <Route path="/product/:slug" element={<Product />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/checkout" element={<Checkout />} />
+                  <Route path="*" element={<NotFound />} />
+                </Route>
+              </Routes>
+            </BrowserRouter>
           </TooltipProvider>
         </CartProvider>
       </AuthProvider>

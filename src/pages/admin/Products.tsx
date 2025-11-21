@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Edit, Trash2, Plus } from 'lucide-react';
 import ProductEditDialog from '@/components/admin/ProductEditDialog';
-import { supabase } from '@/integrations/supabase/client';
+import adminApi from '@/api/admin';
 import { useToast } from '@/hooks/use-toast';
 
 interface DbProduct {
@@ -35,12 +35,7 @@ export default function AdminProducts() {
 
   const fetchProducts = async () => {
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      const data = await adminApi.fetchAdminProducts();
       setProducts(data || []);
     } catch (error: any) {
       toast({
@@ -53,16 +48,11 @@ export default function AdminProducts() {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this product?')) return;
 
     try {
-      const { error } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      await adminApi.deleteProduct(id);
 
       toast({
         title: 'Success',
@@ -131,7 +121,7 @@ export default function AdminProducts() {
               <CardContent className="p-4">
                 <div className="flex gap-4">
                   <img
-                    src={product.image_url}
+                    src={product.image_url || ''}
                     alt={product.name}
                     className="w-20 h-20 object-cover rounded"
                   />
@@ -141,14 +131,37 @@ export default function AdminProducts() {
                       {product.category}
                     </p>
                     <p className="text-sm font-medium text-[hsl(var(--primary))]">
-                      {product.price_range}
+                      {product.variants && product.variants.length > 0 ? `₹${product.variants[0].price}` : ''}
                     </p>
                   </div>
                   <div className="flex gap-2">
                     <Button 
                       variant="outline" 
                       size="icon"
-                      onClick={() => setEditingProduct(product)}
+                      onClick={() => setEditingProduct({
+                        id: product.id,
+                        name: product.name,
+                        slug: '',
+                        description: product.description || '',
+                        category: product.category,
+                        price_range: '',
+                        image_url: product.image_url || '',
+                        tags: [],
+                        spice_level: null,
+                        origin: null,
+                        weight: null,
+                        shelf_life: null,
+                        available: true,
+                        // map backend variants to UI variant shape used by VariantManager
+                        variants: (product.variants || []).map((v) => ({
+                          id: v.id,
+                          label: v.weight,
+                          weightGrams: parseInt((v.weight || '').replace(/[^0-9]/g, '')) || 0,
+                          price: Number(v.price),
+                          mrp: Number(v.price),
+                          stock: 0,
+                        })),
+                      })}
                     >
                       <Edit className="w-4 h-4" />
                     </Button>

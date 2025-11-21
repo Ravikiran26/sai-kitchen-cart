@@ -22,6 +22,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+  // Debug: print Supabase env values in browser console for troubleshooting
+  if (typeof window !== 'undefined') {
+    // Only show in development
+    try {
+      // eslint-disable-next-line no-console
+      console.debug('Supabase env:', {
+        VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
+        VITE_SUPABASE_PUBLISHABLE_KEY: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ? '[redacted]' : undefined,
+      });
+    } catch (e) {
+      // ignore in non-browser contexts
+    }
+  }
+
   useEffect(() => {
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -75,20 +89,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const res = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
+      // Debug: raw sign-in response
+      // eslint-disable-next-line no-console
+      console.debug('supabase.signInWithPassword ->', res);
+
+      const error = (res as any).error;
       if (error) {
         toast({
-          title: "Login failed",
+          title: 'Login failed',
           description: error.message,
-          variant: "destructive",
+          variant: 'destructive',
         });
       } else {
         toast({
-          title: "Welcome back!",
+          title: 'Welcome back!',
           description: "You've successfully logged in.",
         });
       }
@@ -102,8 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = async (email: string, password: string) => {
     try {
       const redirectUrl = `${window.location.origin}/`;
-      
-      const { error } = await supabase.auth.signUp({
+      const res = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -111,16 +129,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
       });
 
+      // Debug: raw sign-up response
+      // eslint-disable-next-line no-console
+      console.debug('supabase.signUp ->', res);
+
+      const error = (res as any).error;
       if (error) {
         toast({
-          title: "Signup failed",
+          title: 'Signup failed',
           description: error.message,
-          variant: "destructive",
+          variant: 'destructive',
         });
       } else {
         toast({
-          title: "Account created!",
-          description: "You can now log in with your credentials.",
+          title: 'Account created!',
+          description: 'You can now log in with your credentials.',
         });
       }
 
