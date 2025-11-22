@@ -57,14 +57,14 @@ export default function Home() {
               Experience the warmth of traditional recipes with our handcrafted pickles, podulu, snacks, and organic pulses.
             </p>
             <div className="flex flex-wrap gap-4">
-              <Button size="lg" asChild>
+              {/* <Button size="lg" asChild>
                 <Link to="/category/pickles">
                   Shop Now <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
               <Button size="lg" variant="outline" asChild>
                 <Link to="/about">Learn More</Link>
-              </Button>
+              </Button> */}
             </div>
           </div>
         </div>
