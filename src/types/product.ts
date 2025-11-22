@@ -2,6 +2,7 @@
 export type Category = 'pickles' | 'podulu' | 'snacks' | 'pulses';
 
 export interface ProductVariant {
+  id?: number;   
   label: string;
   weightGrams: number;
   price: number;

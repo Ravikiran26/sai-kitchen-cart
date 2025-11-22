@@ -13,6 +13,7 @@ function mapApiVariantToUi(v: any): UiVariant {
     parseInt(String(v.weight ?? '').replace(/[^0-9]/g, ''), 10) || 0;
 
   return {
+    id: v.id,
     label,
     weightGrams,
     price: Number(v.price ?? 0),
